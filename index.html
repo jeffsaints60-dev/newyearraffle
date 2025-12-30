@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANZON STORE Raffle Elimination 2025</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f0fdf4;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+}
+h1{font-size:22px;text-align:center;margin-bottom:10px}
+canvas{border:6px solid #14532d;border-radius:50%}
+button{
+  margin:8px;
+  padding:14px 26px;
+  font-size:18px;
+  background:#16a34a;
+  color:#fff;
+  border:none;
+  border-radius:12px;
+}
+#controls{display:flex;gap:10px;flex-wrap:wrap}
+
+#winnerOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+#winnerBox{
+  background:#fff;
+  padding:40px;
+  border-radius:24px;
+  text-align:center;
+  width:90%;
+  max-width:520px;
+}
+#winnerBox img{
+  width:200px;
+  margin-bottom:20px;
+}
+#winnerBox h2{
+  font-size:44px;
+  margin:0;
+  color:#16a34a;
+}
+
+.confetti,.sad{
+  position:fixed;
+  top:-20px;
+  font-size:26px;
+  pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>MANZON STORE Raffle Elimination 2025</h1>
+
+<canvas id="wheel" width="420" height="420"></canvas>
+
+<div id="controls">
+  <button id="spinBtn">SPIN</button>
+  <button id="resetBtn" style="background:#f97316">RESET</button>
+</div>
+
+<div id="winnerOverlay">
+  <div id="winnerBox">
+    <img id="phoneImg" src="https://cdn-icons-png.flaticon.com/512/104/104772.png">
+    <h2 id="winnerText"></h2>
+  </div>
+</div>
+
+<audio id="spinSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_36c2a6a7e6.mp3"></audio>
+<audio id="winSound" src="https://cdn.pixabay.com/audio/2022/10/18/audio_9d0fa1b1d1.mp3"></audio>
+
+<script>
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const center = canvas.width/2;
+
+const ORIGINAL_PLAYERS = [
+  "Ate Budda and Marvin","April and Na Fely","Bulak Fam","Ate Shy",
+  "Belen Fam","Manzon Fam","Nay Fe and Geke Elizer","Lontoc Fam",
+  "Richard Fam","Adilo","Buree","Botts","Tito Boy",
+  "Jonathan Doria Fam","Sheng",
+
+  /* 🔒 FINAL FIXED PLAYERS */
+  "Te Icel and Toto","Te Udet","Tiyo Ising"
+];
+
+let players = [...ORIGINAL_PLAYERS];
+let angle = 0;
+let spinning = false;
+
+const spinSound = document.getElementById("spinSound");
+const winSound = document.getElementById("winSound");
+spinSound.volume = 1;
+winSound.volume = 1;
+
+function sliceAngle(){ return 2*Math.PI/players.length; }
+
+function drawWheel(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  players.forEach((name,i)=>{
+    const start = angle + i*sliceAngle();
+    ctx.beginPath();
+    ctx.moveTo(center,center);
+    ctx.arc(center,center,center,start,start+sliceAngle());
+    ctx.fillStyle=`hsl(${i*360/players.length},70%,50%)`;
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(center,center);
+    ctx.rotate(start + sliceAngle()/2);
+    ctx.textAlign="right";
+    ctx.fillStyle="#fff";
+    ctx.font="bold 16px Arial";
+    ctx.fillText(name, center-10,6);
+    ctx.restore();
+  });
+
+  ctx.fillStyle="red";
+  ctx.beginPath();
+  ctx.moveTo(center,0);
+  ctx.lineTo(center-14,26);
+  ctx.lineTo(center+14,26);
+  ctx.fill();
+}
+drawWheel();
+
+function dropEmoji(emoji){
+  for(let i=0;i<50;i++){
+    const e=document.createElement("div");
+    e.className=emoji==="🎉"?"confetti":"sad";
+    e.innerText=emoji;
+    e.style.left=Math.random()*innerWidth+"px";
+    document.body.appendChild(e);
+    let y=0;
+    const fall=()=>{
+      y+=4;
+      e.style.top=y+"px";
+      if(y<innerHeight) requestAnimationFrame(fall);
+      else e.remove();
+    };
+    fall();
+  }
+}
+
+function spin(){
+  if(spinning) return;
+  spinning=true;
+
+  spinSound.currentTime=0;
+  spinSound.play();
+
+  let winnerIndex;
+  if(players.length > 3){
+    winnerIndex = Math.floor(Math.random()*(players.length-3));
+  } else if(players.length === 3){
+    winnerIndex = players.indexOf("Te Icel and Toto");
+  } else if(players.length === 2){
+    winnerIndex = players.indexOf("Te Udet");
+  } else {
+    winnerIndex = 0;
+  }
+
+  const target = (3*Math.PI/2) - (winnerIndex*sliceAngle()+sliceAngle()/2);
+  const finalAngle = 14*2*Math.PI + target;
+  const duration = 8000;
+  const start = performance.now();
+
+  function animate(t){
+    const p=Math.min((t-start)/duration,1);
+    angle = finalAngle*(1-Math.pow(1-p,3));
+    drawWheel();
+    if(p<1) requestAnimationFrame(animate);
+    else{
+      spinning=false;
+      spinSound.pause();
+
+      const winner = players[winnerIndex];
+      document.getElementById("winnerText").textContent = winner;
+      document.getElementById("phoneImg").style.display =
+        players.length===1 ? "block":"none";
+
+      document.getElementById("winnerOverlay").style.display="flex";
+
+      if(players.length<=3){
+        winSound.play();
+        dropEmoji("🎉");
+      }else{
+        dropEmoji("😢");
+      }
+
+      if(players.length>1){
+        players.splice(winnerIndex,1);
+        drawWheel();
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+document.getElementById("spinBtn").onclick=spin;
+document.getElementById("resetBtn").onclick=()=>{
+  players=[...ORIGINAL_PLAYERS];
+  angle=0;
+  drawWheel();
+};
+document.getElementById("winnerOverlay").onclick=()=>{
+  document.getElementById("winnerOverlay").style.display="none";
+};
+</script>
+
+</body>
+</html>
